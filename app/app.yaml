@@ -1,0 +1,16 @@
+# Databricks App runtime config. Resource names (valueFrom) match databricks.yml.
+command: ["streamlit", "run", "app.py"]
+env:
+  - name: ANTHROPIC_API_KEY
+    valueFrom: anthropic-key
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+  - name: CATALOG
+    value: main
+  - name: SCHEMA
+    value: support_copilot
+  - name: CLAUDE_MODEL
+    value: claude-sonnet-5-5
+  # Optional: set to a workspace path to record MLflow traces, e.g. /Shared/support-copilot
+  - name: MLFLOW_EXPERIMENT
+    value: ""

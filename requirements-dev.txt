@@ -1,0 +1,2 @@
+-r app/requirements.txt
+anthropic>=0.60

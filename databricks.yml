@@ -1,0 +1,64 @@
+# Databricks Asset Bundle: provisions the data pipeline job and the agent app as code.
+# Deploy:  databricks bundle deploy -t dev
+# Run:     databricks bundle run setup_pipeline -t dev
+bundle:
+  name: support-copilot
+
+variables:
+  catalog:
+    description: Unity Catalog catalog to use
+    default: main
+  schema:
+    description: Schema for all project tables, volume and index
+    default: support_copilot
+  warehouse_id:
+    description: ID of the SQL warehouse the agent queries (SQL Warehouses > your warehouse > Connection details)
+  secret_scope:
+    description: Secret scope holding the Anthropic API key
+    default: support-copilot
+  vs_endpoint:
+    description: Vector search endpoint name
+    default: support-copilot-vs
+
+resources:
+  jobs:
+    setup_pipeline:
+      name: support-copilot-setup
+      tasks:
+        - task_key: setup_data
+          notebook_task:
+            notebook_path: ./notebooks/01_setup_data.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+        - task_key: build_index
+          depends_on:
+            - task_key: setup_data
+          notebook_task:
+            notebook_path: ./notebooks/02_build_index.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              vs_endpoint: ${var.vs_endpoint}
+      # No cluster specified -> runs on serverless jobs compute (if enabled in your workspace).
+
+  apps:
+    support_copilot_app:
+      name: support-copilot
+      description: Customer Support Copilot - Claude Agent SDK + RAG on Databricks
+      source_code_path: ./app
+      resources:
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
+        - name: anthropic-key
+          secret:
+            scope: ${var.secret_scope}
+            key: anthropic-api-key
+            permission: READ
+
+targets:
+  dev:
+    mode: development
+    default: true

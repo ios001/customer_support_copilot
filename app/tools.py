@@ -5,6 +5,7 @@ get_customer_context  -> SQL warehouse query over customers / tickets / orders D
 create_escalation     -> INSERT into the escalations Delta table
 """
 import json
+import uuid
 
 from claude_agent_sdk import create_sdk_mcp_server, tool
 from databricks.sdk import WorkspaceClient
@@ -81,10 +82,13 @@ async def create_escalation_impl(customer_id: int, summary: str, priority: str) 
     priority = priority.lower()
     if priority not in {"low", "medium", "high"}:
         return {"error": "priority must be low, medium or high"}
+    escalation_id = str(uuid.uuid4())  # generated in Python: Databricks rejects uuid() inside VALUES
     run_sql(
-        f"INSERT INTO {FQ}.escalations VALUES (uuid(), :cid, :summary, :priority, current_timestamp())",
-        {"cid": customer_id, "summary": summary[:2000], "priority": priority})
-    return {"status": "escalation created", "customer_id": customer_id, "priority": priority}
+        f"INSERT INTO {FQ}.escalations (escalation_id, customer_id, summary, priority, created_at) "
+        f"SELECT :eid, :cid, :summary, :priority, current_timestamp()",
+        {"eid": escalation_id, "cid": customer_id, "summary": summary[:2000], "priority": priority})
+    return {"status": "escalation created", "escalation_id": escalation_id,
+            "customer_id": customer_id, "priority": priority}
 
 
 # ---------- tool wrappers exposed to Claude ----------

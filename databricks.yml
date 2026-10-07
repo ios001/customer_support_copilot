@@ -62,3 +62,8 @@ targets:
   dev:
     mode: development
     default: true
+    workspace:
+      profile: dbc-bea9dee7-9133
+    variables:
+      catalog: main
+      warehouse_id: a14672fad8af3310
